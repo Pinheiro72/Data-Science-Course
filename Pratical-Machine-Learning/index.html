@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8' />
+    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+    <meta name="description" content="Pratical machine learning : Coursera course June 2014" />
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>Pratical machine learning</title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/Pinheiro72/Pratical_Machine_Learning">View on GitHub</a>
+
+          <h1 id="project_title">Pratical machine learning</h1>
+          <h2 id="project_tagline">Coursera course June 2014</h2>
+
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/Pinheiro72/Pratical_Machine_Learning/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/Pinheiro72/Pratical_Machine_Learning/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <h1>
+<a name="predicition-of-activity-using-random-forests" class="anchor" href="#predicition-of-activity-using-random-forests"><span class="octicon octicon-link"></span></a>Predicition of activity using Random Forests</h1>
+
+<p>The objective of this assignment is to predict the activity done in 5 different ways of barbell lifts. For this purpose it was used data from accelerometers on the belt, forearm, arm and dumbbell of 6 participants, kindly ceded by Groupware.les.inf.</p>
+
+<h3>
+<a name="preprocessing" class="anchor" href="#preprocessing"><span class="octicon octicon-link"></span></a>Preprocessing</h3>
+
+<p>The test data consisted in 20 samples (observations) and 160 variables. Analyzing this variables was possible to exclude 108 variables since a few were not predictors (i.e. name of the athlete) and the majority didn't had values, although in the train data 406 observations had values for those specific variables.</p>
+
+<pre><code>testing &lt;- read.csv("./pml-testing.csv", header=TRUE, sep=",", dec=".")  
+training &lt;- read.csv("./pml-training.csv", header=TRUE, sep=",", dec=".")  
+trainingA &lt;- training[ , -c(1:7,12:36,50:59,69:83,87:112,125:139,141:150)]  
+testingF &lt;- testing[ , -c(1:7,12:36,50:59,69:83,87:112,125:139,141:150)]  
+</code></pre>
+
+<p>As a preprocessing procedure it was used a center and scale method avaiable on the <em>caret</em> package function <em>preProcess</em>.</p>
+
+<h3>
+<a name="variable-selection-and-cross-validation" class="anchor" href="#variable-selection-and-cross-validation"><span class="octicon octicon-link"></span></a>Variable selection and cross validation</h3>
+
+<p>Since the train data consisted on 19622 observations, a computacional problem was posed. The processing time for each training model. For this reason the first split created by the function <em>createDataPartition</em> consisted on 10% of the training data set observations and 51 variables as predictors. The computer has a 2.26GHz core duo processor and took 18 minutes to perform the first training using RStudio.</p>
+
+<pre><code>library(lattice); library(ggplot2); library(caret)  
+inTrain &lt;- createDataPartition(y=training2$classe, p=0.1, list=FALSE)  
+training2 &lt;- trainingA[inTrain, ]  
+testing2 &lt;- trainingA[-inTrain, ]  
+library(e1071); library(randomForest)  
+preProc &lt;- preProcess(training2[ , -52], method=c("scale","center"))  
+trainRF &lt;- predict(preProc, training2[ , -52])  
+modFit &lt;- train(training2$classe ~., method="rf", data=trainRF, prox=TRUE)  
+testRF &lt;- predict(preProc, testing2[ , -52])  
+confusionMatrix(testing2$classe, predict(modFit, testRF))  
+</code></pre>
+
+<p>After using the function <em>trControl=trainControl(method=“oob”)</em> on the same training data set, the time went down to 1.5 minutes and the accuracy stayed within the confidence interval.</p>
+
+<pre><code>modFit2 &lt;- train(training3$classe ~., method="rf", trControl=trainControl(method="oob"), data=trainRF, prox=TRUE)  
+testRF2 &lt;- predict(preProc, testing2[ , -52])  
+CM2 &lt;- confusionMatrix(testing2$classe, predict(modFit2, testRF2))
+</code></pre>
+
+<p><img src="http://pinheiro72.github.io/Pratical_Machine_Learning/figure/RFGiniplot1.png" alt=""></p>
+
+<p>As we can see in the above figure there is a big split between the 6th and 7th variable and probably the first 6 variables would be good predictors of the outcome <em>classe</em>, but to be conservative it was choosed the first 9 most important variables.</p>
+
+<pre><code>varImpPlot(modFit2$finalModel, main="Random Forests", cex=0.7)  
+varImp(modFit2)  
+colTrain &lt;- rownames(which(varImp(modFit2)$importance &gt; 25, arr.ind=TRUE))  
+</code></pre>
+
+<pre><code>## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction    A    B    C    D    E
+##          A 4963   36    6   12    5
+##          B  217 3080  110   10    0
+##          C    8  173 2828   70    0
+##          D   38   20  131 2686   19
+##          E    5   65   68   66 3042
+## 
+## Overall Statistics
+##                                         
+##                Accuracy : 0.94          
+##                  95% CI : (0.936, 0.943)
+##     No Information Rate : 0.296         
+##     P-Value [Acc &gt; NIR] : &lt;2e-16        
+##                                         
+##                   Kappa : 0.924         
+##  Mcnemar's Test P-Value : &lt;2e-16        
+## 
+## Statistics by Class:
+## 
+##                      Class: A Class: B Class: C Class: D Class: E
+## Sensitivity             0.949    0.913    0.900    0.944    0.992
+## Specificity             0.995    0.976    0.983    0.986    0.986
+## Pos Pred Value          0.988    0.901    0.918    0.928    0.937
+## Neg Pred Value          0.979    0.979    0.978    0.989    0.998
+## Prevalence              0.296    0.191    0.178    0.161    0.174
+## Detection Rate          0.281    0.174    0.160    0.152    0.172
+## Detection Prevalence    0.284    0.194    0.174    0.164    0.184
+## Balanced Accuracy       0.972    0.945    0.941    0.965    0.989
+</code></pre>
+
+<pre><code>par(cex=0.7)  
+plot(modFit$finalModel, main="")  
+legend("topright", legend=colnames(modFit$finalModel$err.rate), col=1:6, pch=19)  
+abline(v=300, lwd=2, col=2)  
+</code></pre>
+
+<p><img src="http://pinheiro72.github.io/Pratical_Machine_Learning/figure/ErrorTreeplot.png" alt=""></p>
+
+<p>In the above figure we can see the error rate across the number of trees used to fit the model. As we can see above 300th tree there isn't any significant aditional error reduction on any category of <em>classe</em>.</p>
+
+<h3>
+<a name="predicting-using-random-forests" class="anchor" href="#predicting-using-random-forests"><span class="octicon octicon-link"></span></a>Predicting using Random Forests</h3>
+
+<p>After a selection variable reduction, the training data set was again split by the function <em>createDataPartition</em>, resulting on a training data set of 40% and the remaining stayed as the testing data set. The training set wasn't larger because ocurred an error saying that cannot allocate a vector of size 700Mb. Even so, the model accuracy increased.</p>
+
+<pre><code>inTrain &lt;- createDataPartition(y=trainingA$classe, p=0.4, list=FALSE)  
+training3 &lt;- trainingA[inTrain, c(colTrain,"classe")]  
+testing3 &lt;- trainingA[-inTrain, c(colTrain,"classe")]  
+preProc3 &lt;- preProcess(training3[ , -10], method=c("scale","center"))  
+trainRF3 &lt;- predict(preProc3, training3[ , -10])  
+modFit3 &lt;- train(training3$classe ~., method="rf", trControl=trainControl(method="oob"), data=trainRF3, prox=TRUE)  
+testRF3 &lt;- predict(preProc3, testing3[ , -10])  
+CM3 &lt;- confusionMatrix(testing3$classe, predict(modFit3, testRF3))  
+</code></pre>
+
+<pre><code>## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction    A    B    C    D    E
+##          A 3298   26   21    3    0
+##          B   39 2170   51   15    3
+##          C    1   30 1992   30    0
+##          D    0    6   27 1892    4
+##          E    1   31   10    9 2113
+## 
+## Overall Statistics
+##                                         
+##                Accuracy : 0.974         
+##                  95% CI : (0.971, 0.977)
+##     No Information Rate : 0.284         
+##     P-Value [Acc &gt; NIR] : &lt; 2e-16       
+##                                         
+##                   Kappa : 0.967         
+##  Mcnemar's Test P-Value : 6.26e-11      
+## 
+## Statistics by Class:
+## 
+##                      Class: A Class: B Class: C Class: D Class: E
+## Sensitivity             0.988    0.959    0.948    0.971    0.997
+## Specificity             0.994    0.989    0.994    0.996    0.995
+## Pos Pred Value          0.985    0.953    0.970    0.981    0.976
+## Neg Pred Value          0.995    0.990    0.989    0.994    0.999
+## Prevalence              0.284    0.192    0.178    0.166    0.180
+## Detection Rate          0.280    0.184    0.169    0.161    0.179
+## Detection Prevalence    0.284    0.194    0.174    0.164    0.184
+## Balanced Accuracy       0.991    0.974    0.971    0.983    0.996
+</code></pre>
+
+<h3>
+<a name="conclusions" class="anchor" href="#conclusions"><span class="octicon octicon-link"></span></a>Conclusions</h3>
+
+<pre><code>varImpPlot(modFit3$finalModel, main="Random Forests")  
+</code></pre>
+
+<p><img src="http://pinheiro72.github.io/Pratical_Machine_Learning/figure/RFGiniplot2.png" alt=""></p>
+
+<p>As we can see in the graphic the <em>roll belt</em> and <em>yaw belt</em> variabels are the ones that contribute more to classify the type of activity done by the athletes.</p>
+
+<p></p>
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">Pratical machine learning maintained by <a href="https://github.com/Pinheiro72">Pinheiro72</a></p>
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+    
+
+  </body>
+</html>
