@@ -1,7 +1,7 @@
 Data Science Specialization Course
 =========================
 
-These are the course assignment materials for the Johns Hopkins Exploratory Data Analysis on Coursera of April 2015
+These are the course assignment materials for the Johns Hopkins Exploratory Data Analysis on Coursera of May 2015
 
 Materials are under development and subject to change.
 
