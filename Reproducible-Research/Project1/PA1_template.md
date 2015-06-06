@@ -2,7 +2,7 @@
 title: "Reproducible research course assignment 1"
 output: html_document
 author: Pinheiro, Jorge
-date: 2015, 15th of May
+date: 2015, 6th of June
 ---
 
 ### Abstract
